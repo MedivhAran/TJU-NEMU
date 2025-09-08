@@ -9,6 +9,7 @@
 
 void cpu_exec(uint32_t);
 
+
 /* We use the `readline' library to provide more flexibility to read from stdin. */
 char* rl_gets() {
 	static char *line_read = NULL;
@@ -27,31 +28,78 @@ char* rl_gets() {
 	return line_read;
 }
 
+
+
+
+//六个指令
 static int cmd_c(char *args) {
 	cpu_exec(-1);
 	return 0;
 }
-
 static int cmd_q(char *args) {
 	return -1;
 }
 
 static int cmd_help(char *args);
 
+static int cmd_si(char *args);
+static int cmd_info(char *args);
+static int cmd_scan(char *args);
+
+
+
 static struct {
 	char *name;
 	char *description;
-	int (*handler) (char *);
-} cmd_table [] = {
+	int (*handler) (char *);	//函数指针
+	} cmd_table [] = {
 	{ "help", "Display informations about all supported commands", cmd_help },
 	{ "c", "Continue the execution of the program", cmd_c },
 	{ "q", "Exit NEMU", cmd_q },
-
 	/* TODO: Add more commands */
-
+	{ "si", "step into (n steps)", cmd_si},
+	{"info", "show info of register", cmd_info},
+	{"scan", "scan memory", cmd_scan}
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
+
+static int cmd_si(char *args){
+	int step = 1;
+    if (args != NULL) {
+        sscanf(args, "%d", &step);
+    }
+    cpu_exec(step);
+    return 0;
+}
+
+static int cmd_info(char *args) {
+    if (args == NULL) return 0;
+    if (strcmp(args, "r") == 0) {
+        {
+			int i;
+    		for (i = 0; i < 8; i++) {
+        	printf("%s\t0x%08x\t%d\n", regsl[i], reg_l(i), reg_l(i));
+    	}
+    	printf("eip\t0x%08x\t%d\n", cpu.eip, cpu.eip);
+		}
+    } else if (strcmp(args, "w") == 0) {
+        /* 打印监视点，后续任务用 */
+    }
+    return 0;
+}
+
+static int cmd_scan(char *args) {
+    int N;
+    uint32_t addr;
+    if (args == NULL) return 0;
+    sscanf(args, "%d %x", &N, &addr);
+    for (int i = 0; i < N; i++) {
+        uint32_t data = swaddr_read(addr + i * 4, 4);
+        printf("0x%08x: 0x%08x\n", addr + i * 4, data);
+    }
+    return 0;
+}
 
 static int cmd_help(char *args) {
 	/* extract the first argument */
@@ -75,6 +123,7 @@ static int cmd_help(char *args) {
 	}
 	return 0;
 }
+
 
 void ui_mainloop() {
 	while(1) {
@@ -109,3 +158,7 @@ void ui_mainloop() {
 		if(i == NR_CMD) { printf("Unknown command '%s'\n", cmd); }
 	}
 }
+
+
+
+
