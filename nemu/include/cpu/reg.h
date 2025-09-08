@@ -31,8 +31,7 @@ typedef struct {
 		_8[1] → 对应高 8 位（如 AH）
 		但是这里的问题在于结构体内的这几个变量是分开存储的，没有共享内存，所以需要引入union联，让多个字段共享同一块内存空间。*/
 
-     /* Do NOT change the order of the GPRs' definitions. */
-
+		/* Do NOT change the order of the GPRs' definitions. */
 	 //八个 32 位寄存器
      	struct{uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;};
 	 };

@@ -1,3 +1,5 @@
+//模拟「计算机启动」的功能
+
 #include "nemu.h"
 
 #define ENTRY_START 0x100000

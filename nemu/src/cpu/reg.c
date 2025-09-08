@@ -4,11 +4,16 @@
 
 CPU_state cpu;
 
+//32位寄存器
 const char *regsl[] = {"eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi"};
+//16 位寄存器
 const char *regsw[] = {"ax", "cx", "dx", "bx", "sp", "bp", "si", "di"};
+//8 位寄存器
 const char *regsb[] = {"al", "cl", "dl", "bl", "ah", "ch", "dh", "bh"};
 
+
 void reg_test() {
+	//生成随机数据
 	srand(time(0));
 	uint32_t sample[8];
 	uint32_t eip_sample = rand();
@@ -20,6 +25,7 @@ void reg_test() {
 		reg_l(i) = sample[i];
 		assert(reg_w(i) == (sample[i] & 0xffff));
 	}
+
 
 	assert(reg_b(R_AL) == (sample[R_EAX] & 0xff));
 	assert(reg_b(R_AH) == ((sample[R_EAX] >> 8) & 0xff));
@@ -42,3 +48,22 @@ void reg_test() {
 	assert(eip_sample == cpu.eip);
 }
 
+int str2reg(const char *s, bool *success) {
+    int i;  // 声明提前
+    for (i = 0; i < 8; i++) {
+        if (strcmp(s, regsl[i]) == 0) { *success = true; return reg_l(i); }
+        if (strcmp(s, regsw[i]) == 0) { *success = true; return reg_w(i); }
+        if (strcmp(s, regsb[i]) == 0) { *success = true; return reg_b(i); }
+    }
+    if (strcmp(s, "eip") == 0) { *success = true; return cpu.eip; }
+    *success = false;
+    return 0;
+}
+
+void isa_reg_display() {
+    int i;  // 声明提前
+    for (i = 0; i < 8; i++) {
+        printf("%s\t0x%08x\t%d\n", regsl[i], reg_l(i), reg_l(i));
+    }
+    printf("eip\t0x%08x\t%d\n", cpu.eip, cpu.eip);
+}
