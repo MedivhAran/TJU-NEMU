@@ -3,6 +3,7 @@
 
 #include "common.h"
 
+//所有寄存器，一共 24 个
 enum { R_EAX, R_ECX, R_EDX, R_EBX, R_ESP, R_EBP, R_ESI, R_EDI };
 enum { R_AX, R_CX, R_DX, R_BX, R_SP, R_BP, R_SI, R_DI };
 enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
@@ -15,15 +16,26 @@ enum { R_AL, R_CL, R_DL, R_BL, R_AH, R_CH, R_DH, R_BH };
  */
 
 typedef struct {
-     struct {
-		uint32_t _32;
-		uint16_t _16;
-		uint8_t _8[2];
-     } gpr[8];
+	union{
+		struct{
+     		union {
+				uint32_t _32;
+				uint16_t _16;
+				uint8_t _8[2];
+     		} gpr[8];
+		};
+	 /*gpr[8]：长度为 8 的数组，对应 8 个通用寄存器（EAX, ECX, EDX, EBX, ESP, EBP, ESI, EDI）。每个 gpr[i] 又是一个小结构体，里面有三种不同大小的字段：
+		_32 → 对应 32 位寄存器（如 EAX）
+		_16 → 对应低 16 位寄存器（如 AX）
+		_8[0] → 对应低 8 位（如 AL）
+		_8[1] → 对应高 8 位（如 AH）
+		但是这里的问题在于结构体内的这几个变量是分开存储的，没有共享内存，所以需要引入union联，让多个字段共享同一块内存空间。*/
 
      /* Do NOT change the order of the GPRs' definitions. */
 
-     uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;
+	 //八个 32 位寄存器
+     	struct{uint32_t eax, ecx, edx, ebx, esp, ebp, esi, edi;};
+	 };
 
      swaddr_t eip;
      
