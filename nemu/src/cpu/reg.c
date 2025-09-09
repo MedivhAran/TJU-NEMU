@@ -47,23 +47,3 @@ void reg_test() {
 
 	assert(eip_sample == cpu.eip);
 }
-
-int str2reg(const char *s, bool *success) {
-    int i;  // 声明提前
-    for (i = 0; i < 8; i++) {
-        if (strcmp(s, regsl[i]) == 0) { *success = true; return reg_l(i); }
-        if (strcmp(s, regsw[i]) == 0) { *success = true; return reg_w(i); }
-        if (strcmp(s, regsb[i]) == 0) { *success = true; return reg_b(i); }
-    }
-    if (strcmp(s, "eip") == 0) { *success = true; return cpu.eip; }
-    *success = false;
-    return 0;
-}
-
-void isa_reg_display() {
-    int i;  // 声明提前
-    for (i = 0; i < 8; i++) {
-        printf("%s\t0x%08x\t%d\n", regsl[i], reg_l(i), reg_l(i));
-    }
-    printf("eip\t0x%08x\t%d\n", cpu.eip, cpu.eip);
-}

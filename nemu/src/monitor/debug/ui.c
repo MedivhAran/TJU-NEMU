@@ -83,9 +83,7 @@ static int cmd_info(char *args) {
     	}
     	printf("eip\t0x%08x\t%d\n", cpu.eip, cpu.eip);
 		}
-    } else if (strcmp(args, "w") == 0) {
-        /* 打印监视点，后续任务用 */
-    }
+    } 
     return 0;
 }
 
@@ -94,7 +92,8 @@ static int cmd_scan(char *args) {
     uint32_t addr;
     if (args == NULL) return 0;
     sscanf(args, "%d %x", &N, &addr);
-    for (int i = 0; i < N; i++) {
+	int i = 0;
+    for (i = 0; i < N; i++) {
         uint32_t data = swaddr_read(addr + i * 4, 4);
         printf("0x%08x: 0x%08x\n", addr + i * 4, data);
     }
