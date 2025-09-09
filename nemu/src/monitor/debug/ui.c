@@ -42,8 +42,11 @@ static int cmd_q(char *args) {
 
 static int cmd_help(char *args);
 
+//单步调试
 static int cmd_si(char *args);
+//打印寄存器信息
 static int cmd_info(char *args);
+//扫描内存
 static int cmd_scan(char *args);
 
 
@@ -75,6 +78,7 @@ static int cmd_si(char *args){
 
 static int cmd_info(char *args) {
     if (args == NULL) return 0;
+	//若用户输入的参数为 r
     if (strcmp(args, "r") == 0) {
         {
 			int i;
@@ -126,6 +130,7 @@ static int cmd_help(char *args) {
 
 void ui_mainloop() {
 	while(1) {
+		//从终端读取一行用户输入
 		char *str = rl_gets();
 		char *str_end = str + strlen(str);
 
@@ -136,6 +141,7 @@ void ui_mainloop() {
 		/* treat the remaining string as the arguments,
 		 * which may need further parsing
 		 */
+		//cmd此时是指令的本体，现在需要分割后面的参数，+1是因为空格
 		char *args = cmd + strlen(cmd) + 1;
 		if(args >= str_end) {
 			args = NULL;
@@ -147,6 +153,7 @@ void ui_mainloop() {
 #endif
 
 		int i;
+		//遍历指令
 		for(i = 0; i < NR_CMD; i ++) {
 			if(strcmp(cmd, cmd_table[i].name) == 0) {
 				if(cmd_table[i].handler(args) < 0) { return; }
