@@ -68,9 +68,10 @@ static inline int check_reg_index(int index) {
 	return index;
 }
 
-#define reg_l(index) (cpu.gpr[check_reg_index(index)]._32)
-#define reg_w(index) (cpu.gpr[check_reg_index(index)]._16)
-#define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2])
+
+#define reg_l(index) (cpu.gpr[check_reg_index(index)]._32)	//32位寄存器
+#define reg_w(index) (cpu.gpr[check_reg_index(index)]._16)	//16位寄存器查询
+#define reg_b(index) (cpu.gpr[check_reg_index(index) & 0x3]._8[index >> 2])	//8位寄存器查询
 
 extern const char* regsl[];
 extern const char* regsw[];

@@ -82,7 +82,9 @@ static int cmd_info(char *args) {
     if (strcmp(args, "r") == 0) {
         {
 			int i;
+			//依次打印所有寄存器的信息
     		for (i = 0; i < 8; i++) {
+			//寄存器名字 寄存器16进制的值  寄存器10进制的值
         	printf("%s\t0x%08x\t%d\n", regsl[i], reg_l(i), reg_l(i));
     	}
     	printf("eip\t0x%08x\t%d\n", cpu.eip, cpu.eip);
