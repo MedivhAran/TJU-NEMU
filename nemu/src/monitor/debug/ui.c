@@ -62,7 +62,7 @@ static struct {
 	/* TODO: Add more commands */
 	{ "si", "step into (n steps)", cmd_si},
 	{"info", "show info of register", cmd_info},
-	{"scan", "scan memory", cmd_scan}
+	{"x", "scan memory", cmd_scan}
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
