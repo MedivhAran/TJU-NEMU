@@ -96,7 +96,8 @@ static int cmd_info(char *args) {
 static int cmd_scan(char *args) {
     int N;
     uint32_t addr;
-    if (args == NULL) return 0;
+    if (args == NULL) 
+	{return 0;}
     sscanf(args, "%d %x", &N, &addr);
 	int i = 0;
     for (i = 0; i < N; i++) {
