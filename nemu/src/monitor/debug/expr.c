@@ -212,6 +212,7 @@ static int dominant_op(int p, int q) {
 
 static int eval(int p, int q) {
 	if (p > q) {
+		Assert(0, "Bad expression: empty range");
 		return 0;
 	}
 
@@ -235,6 +236,10 @@ static int eval(int p, int q) {
 	else if (check_parentheses(p, q) == true) {
 		return eval(p + 1, q - 1);
 	}
+	else if (check_parentheses(p, q) == false && 
+             tokens[p].type == '(' && tokens[q].type == ')') {
+        Assert(0, "Bad expression: parentheses not matched");
+    }
 	else {		//没有括号的情况
 		int op = dominant_op(p, q);
 		if (op == -1) {
