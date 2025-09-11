@@ -7,7 +7,7 @@
 // Token 类型枚举
 enum {
   NOTYPE = 256, EQ, NEQ, AND, OR,
-  HEX, DEC, REG
+  HEX, DEC, REG, DEREF
 };
 
 static struct rule {
@@ -53,7 +53,7 @@ typedef struct token {
 Token tokens[32];
 int nr_token;
 
-// ====== 词法分析 ======
+
 static bool make_token(char *e) {
   int position = 0;
   int i;
@@ -61,8 +61,10 @@ static bool make_token(char *e) {
   nr_token = 0;
 
   while (e[position] != '\0') {
-    for (i = 0; i < NR_REGEX; i++) {
-      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) {
+    for (i = 0; i < NR_REGEX; i++) 
+	{
+      if (regexec(&re[i], e + position, 1, &pmatch, 0) == 0 && pmatch.rm_so == 0) 
+	  {
         char *substr_start = e + position;
         int substr_len = pmatch.rm_eo;
 
@@ -74,9 +76,9 @@ static bool make_token(char *e) {
         if (rules[i].token_type == NOTYPE) break; // 跳过空格
 
         tokens[nr_token].type = rules[i].token_type;
-        if (rules[i].token_type == DEC || rules[i].token_type == HEX || rules[i].token_type == REG) {
-          Assert(substr_len < sizeof(tokens[nr_token].str),
-                 "token too long: %.*s", substr_len, substr_start);
+        if (rules[i].token_type == DEC || rules[i].token_type == HEX || rules[i].token_type == REG) 
+		{
+          Assert(substr_len < sizeof(tokens[nr_token].str),"token too long: %.*s", substr_len, substr_start);
           strncpy(tokens[nr_token].str, substr_start, substr_len);
           tokens[nr_token].str[substr_len] = '\0';
         }
@@ -84,6 +86,17 @@ static bool make_token(char *e) {
         break;
       }
     }
+
+	if (rules[i].token_type == '*') {
+                    if (nr_token == 0 || 
+                        (tokens[nr_token - 1].type != DEC &&
+                         tokens[nr_token - 1].type != HEX &&
+                         tokens[nr_token - 1].type != REG &&
+                         tokens[nr_token - 1].type != ')' )) {
+                        tokens[nr_token].type = DEREF;
+                    }
+	}
+
     if (i == NR_REGEX) {
       printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
       return false;
@@ -92,7 +105,7 @@ static bool make_token(char *e) {
   return true;
 }
 
-// ====== 寄存器解析 ======
+
 static uint32_t my_str2reg(const char *s, bool *success) {
   int i;
   for (i = 0; i < 8; i++) {
@@ -106,7 +119,7 @@ static uint32_t my_str2reg(const char *s, bool *success) {
   return 0;
 }
 
-// ====== 全局括号平衡检查 ======
+
 static bool check_parentheses_balance() {
   int balance = 0;
   int i;
@@ -118,7 +131,6 @@ static bool check_parentheses_balance() {
   return balance == 0;
 }
 
-// ====== 最外层括号匹配检查 ======
 static bool check_parentheses_outer(int p, int q) {
   if (tokens[p].type != '(' || tokens[q].type != ')') return false;
   int balance = 0;
@@ -132,7 +144,7 @@ static bool check_parentheses_outer(int p, int q) {
   return balance == 0;
 }
 
-// ====== 运算符优先级 ======
+
 static int precedence(int type) {
   switch (type) {
     case OR:  return 1;
@@ -140,11 +152,12 @@ static int precedence(int type) {
     case EQ: case NEQ: return 3;
     case '+': case '-': return 4;
     case '*': case '/': return 5;
+	case DEREF: return 6;
   }
   return 0;
 }
 
-// ====== 找主运算符 ======
+
 static int dominant_op(int p, int q) {
   int op = -1;
   int min_pri = 100;
@@ -164,7 +177,7 @@ static int dominant_op(int p, int q) {
   return op;
 }
 
-// ====== 递归求值 ======
+
 static uint32_t eval(int p, int q) {
   if (p > q) {
     Assert(0, "Bad expression: empty range");
@@ -187,6 +200,11 @@ static uint32_t eval(int p, int q) {
     int op = dominant_op(p, q);
     Assert(op != -1, "Bad expression: no operator");
 
+	if (tokens[op].type == DEREF) {
+        uint32_t addr = eval(op + 1, q);
+        return swaddr_read(addr, 4); // 4字节读内存
+    }
+
     uint32_t val1 = eval(p, op - 1);
     uint32_t val2 = eval(op + 1, q);
 
@@ -205,7 +223,7 @@ static uint32_t eval(int p, int q) {
   return 0;
 }
 
-// ====== 表达式入口 ======
+
 uint32_t expr(char *e, bool *success) {
   if (!make_token(e)) {
     *success = false;
