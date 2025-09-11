@@ -28,6 +28,7 @@ static struct rule {
   {"!=",    NEQ},                 // 不等
   {"&&",    AND},                 // 与
   {"\\|\\|", OR},                  // 或
+  {"!",  NOT},
 };
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]))
 static regex_t re[NR_REGEX];
@@ -93,6 +94,15 @@ static bool make_token(char *e) {
 				tokens[nr_token - 1].type != REG &&
 				tokens[nr_token - 1].type != ')')) {
 				tokens[nr_token].type = NEG;
+			}
+		}
+		if (rules[i].token_type == '!') {
+			if (nr_token == 0 ||
+				(tokens[nr_token - 1].type != DEC &&
+				tokens[nr_token - 1].type != HEX &&
+				tokens[nr_token - 1].type != REG &&
+				tokens[nr_token - 1].type != ')')) {
+				tokens[nr_token].type = NOT;
 			}
 		}
 
@@ -165,7 +175,7 @@ static int precedence(int type) {
     case EQ: case NEQ: return 3;
     case '+': case '-': return 4;
     case '*': case '/': return 5;
-	case DEREF: case NEG: return 7;
+	case DEREF: case NEG :case NOT : return 7;
   }
   return 0;
 }
@@ -223,6 +233,9 @@ static uint32_t eval(int p, int q) {
     }
 	if (tokens[op].type == NEG) {
 		return -eval(op + 1, q);
+	}
+	if (tokens[op].type == NOT) {
+    	return !eval(op + 1, q);
 	}
 
     uint32_t val1 = eval(p, op - 1);
