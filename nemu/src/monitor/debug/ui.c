@@ -49,7 +49,7 @@ static int cmd_info(char *args);
 //扫描内存
 static int cmd_scan(char *args);
 
-
+static int cmd_eval(char *args);
 
 static struct {
 	char *name;
@@ -62,7 +62,8 @@ static struct {
 	/* TODO: Add more commands */
 	{ "si", "step into (n steps)", cmd_si},
 	{"info", "show info of register", cmd_info},
-	{"x", "scan memory", cmd_scan}
+	{"x", "scan memory", cmd_scan},
+	{"p", "evaluate", cmd_eval},
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
@@ -107,6 +108,9 @@ static int cmd_scan(char *args) {
     return 0;
 }
 
+
+
+
 static int cmd_help(char *args) {
 	/* extract the first argument */
 	char *arg = strtok(NULL, " ");
@@ -126,6 +130,18 @@ static int cmd_help(char *args) {
 			}
 		}
 		printf("Unknown command '%s'\n", arg);
+	}
+	return 0;
+}
+
+static int cmd_eval(char *args) {
+	if (args == NULL) return 0;
+	bool success = true;
+	uint32_t result = expr(args, &success);
+	if (success) {
+		printf("%u\n", result);
+	} else {
+		printf("Invalid expression!\n");
 	}
 	return 0;
 }
