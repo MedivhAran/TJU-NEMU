@@ -7,7 +7,7 @@
 // Token 类型枚举
 enum {
   NOTYPE = 256, EQ, NEQ, AND, OR,
-  HEX, DEC, REG, DEREF
+  HEX, DEC, REG, DEREF, NEG
 };
 
 static struct rule {
@@ -85,7 +85,16 @@ static bool make_token(char *e) {
                          tokens[nr_token - 1].type != ')' )) {
                         tokens[nr_token].type = DEREF;
                     }
-	}
+		}
+		if (rules[i].token_type == '-') {
+			if (nr_token == 0 ||
+				(tokens[nr_token - 1].type != DEC &&
+				tokens[nr_token - 1].type != HEX &&
+				tokens[nr_token - 1].type != REG &&
+				tokens[nr_token - 1].type != ')')) {
+				tokens[nr_token].type = NEG;
+			}
+		}
 
 
 
