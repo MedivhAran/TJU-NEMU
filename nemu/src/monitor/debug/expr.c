@@ -7,7 +7,7 @@
 // Token 类型枚举
 enum {
   NOTYPE = 256, EQ, NEQ, AND, OR,
-  HEX, DEC, REG, DEREF, NEG
+  HEX, DEC, REG, DEREF, NEG, LT, LE, GT, GE, NOT
 };
 
 static struct rule {
@@ -24,7 +24,7 @@ static struct rule {
   {"0[xX][0-9a-fA-F]+", HEX},     // 十六进制
   {"[0-9]+", DEC},                // 十进制
   {"\\$[a-zA-Z]+", REG},          // 寄存器
-  {"==",    EQ},                  // 等于
+ {"==",    EQ},                  // 等于
   {"!=",    NEQ},                 // 不等
   {"&&",    AND},                 // 与
   {"\\|\\|", OR},                  // 或
