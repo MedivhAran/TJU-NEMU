@@ -165,7 +165,7 @@ static int precedence(int type) {
     case EQ: case NEQ: return 3;
     case '+': case '-': return 4;
     case '*': case '/': return 5;
-	case DEREF: return 6;
+	case DEREF: case NEG: return 7;
   }
   return 0;
 }
@@ -182,10 +182,12 @@ static int dominant_op(int p, int q) {
     if (balance > 0) continue;
 
     int pri = precedence(tokens[i].type);
-    if (pri > 0 && pri <= min_pri) {
-      min_pri = pri;
-      op = i;
+    if (pri > 0) {
+    if (pri < min_pri || (pri == min_pri && tokens[i].type != DEREF && tokens[i].type != NEG)) {
+        min_pri = pri;
+        op = i;
     }
+}
   }
   return op;
 }
@@ -219,6 +221,9 @@ static uint32_t eval(int p, int q) {
         uint32_t addr = eval(op + 1, q);
         return swaddr_read(addr, 4); // 4字节读内存
     }
+	if (tokens[op].type == NEG) {
+		return -eval(op + 1, q);
+	}
 
     uint32_t val1 = eval(p, op - 1);
     uint32_t val2 = eval(op + 1, q);
