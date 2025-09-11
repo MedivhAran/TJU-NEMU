@@ -76,6 +76,19 @@ static bool make_token(char *e) {
         if (rules[i].token_type == NOTYPE) break; // 跳过空格
 
         tokens[nr_token].type = rules[i].token_type;
+
+		if (rules[i].token_type == '*') {
+                    if (nr_token == 0 || 
+                        (tokens[nr_token - 1].type != DEC &&
+                         tokens[nr_token - 1].type != HEX &&
+                         tokens[nr_token - 1].type != REG &&
+                         tokens[nr_token - 1].type != ')' )) {
+                        tokens[nr_token].type = DEREF;
+                    }
+	}
+
+
+
         if (rules[i].token_type == DEC || rules[i].token_type == HEX || rules[i].token_type == REG) 
 		{
           Assert(substr_len < sizeof(tokens[nr_token].str),"token too long: %.*s", substr_len, substr_start);
@@ -87,15 +100,6 @@ static bool make_token(char *e) {
       }
     }
 
-	if (rules[i].token_type == '*') {
-                    if (nr_token == 0 || 
-                        (tokens[nr_token - 1].type != DEC &&
-                         tokens[nr_token - 1].type != HEX &&
-                         tokens[nr_token - 1].type != REG &&
-                         tokens[nr_token - 1].type != ')' )) {
-                        tokens[nr_token].type = DEREF;
-                    }
-	}
 
     if (i == NR_REGEX) {
       printf("no match at position %d\n%s\n%*.s^\n", position, e, position, "");
@@ -199,6 +203,8 @@ static uint32_t eval(int p, int q) {
   else {
     int op = dominant_op(p, q);
     Assert(op != -1, "Bad expression: no operator");
+
+
 
 	if (tokens[op].type == DEREF) {
         uint32_t addr = eval(op + 1, q);
