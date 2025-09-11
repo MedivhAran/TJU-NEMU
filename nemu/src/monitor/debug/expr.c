@@ -150,32 +150,18 @@ static uint32_t my_str2reg(const char *s, bool *success) {
 
 
 static bool check_parentheses(int p, int q) {
-    // 最外层不是括号，直接返回 false
-    if (tokens[p].type != '(' || tokens[q].type != ')') {
-        return false;
-    }
+    if (p > q) return false;
+    if (tokens[p].type != '(' || tokens[q].type != ')') return false;
 
-    int balance = 0;
-	int i = p;
+    int count = 0;
+    int i;
     for (i = p; i <= q; i++) {
-        if (tokens[i].type == '(') {
-            balance++;
-        } else if (tokens[i].type == ')') {
-            balance--;
-            if (balance < 0) {
-                // 出现右括号多余情况
-                return false;
-            }
-        }
-
-        // 如果在还没到 q 就已经闭合了，说明不是一对完整的大括号包着整个表达式
-        if (balance == 0 && i < q) {
-            return false;
-        }
+        if (tokens[i].type == '(') count++;
+        else if (tokens[i].type == ')') count--;
+        if (count == 0 && i < q) return false;
+        if (count < 0) return false;
     }
-
-    // balance 必须等于 0 才是括号匹配的
-    return balance == 0;
+    return count == 0;
 }
 
 static int precedence(int type) {
