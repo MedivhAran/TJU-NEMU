@@ -76,9 +76,9 @@ void check_watchpoints(void) {
         if (!success) assert(0);
 
         if (new_val != wp->value) {
-            printf("Hint: watchpoint %d triggered at eip = 0x%08x\n", wp->NO, cpu.eip);
-            printf("Old value = %u (0x%x), New value = %u (0x%x)\n",
-                   wp->value, wp->value, new_val, new_val);
+            printf("Hint watchpoint %d at address 0x%08x\n", wp->NO, cpu.eip);
+            printf("Old value = %u (0x%x)\n", wp->value, wp->value);
+            printf("New value = %u (0x%x)\n", new_val, new_val);
             wp->value = new_val;
             nemu_state = STOP;
         }
