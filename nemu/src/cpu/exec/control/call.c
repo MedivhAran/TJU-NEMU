@@ -1,10 +1,10 @@
-// 文件路径: nemu/src/cpu/exec/control-transfer/call.c
+
 
 #include "cpu/exec/helper.h"
 
 // 实现 opcode 0xe8, 即 call rel32
 // 我们可以遵循命名约定，用 'l' 代表 long (32-bit)
-make_helper(call_rel_l) {
+make_helper(call_rel32) {
     // 1. 读取4字节的相对偏移量
     int32_t offset = instr_fetch(eip + 1, 4);
 
