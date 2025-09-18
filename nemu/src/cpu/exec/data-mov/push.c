@@ -1,5 +1,5 @@
 #include "cpu/exec/helper.h"
-
+#include "cpu/reg.h"
 // 'r' 表示寄存器, 'v' 表示 32位 (在 PA2 中)
 make_helper(push_r_v) {
     // 解码操作数：从 opcode 中获取寄存器编号

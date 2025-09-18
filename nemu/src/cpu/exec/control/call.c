@@ -1,5 +1,5 @@
 #include "cpu/exec/helper.h"
-
+#include "cpu/reg.h" 
 make_helper(call_rel32) {
     // 读取4字节的相对偏移量
     int32_t offset = instr_fetch(eip + 1, 4);
