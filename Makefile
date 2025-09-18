@@ -2,6 +2,8 @@
 
 .PHONY: nemu entry testcase kernel run gdb test submit clean
 
+obj-y += call.o
+
 CC := gcc
 LD := ld
 CFLAGS := -MMD -Wall -Werror -c
@@ -55,6 +57,7 @@ clean: clean-cpp
 
 USERPROG := obj/testcase/mov-c
 ENTRY := $(USERPROG)
+
 
 entry: $(ENTRY)
 	objcopy -S -O binary $(ENTRY) entry

@@ -1,5 +1,6 @@
 #include "cpu/helper.h"
 #include "cpu/decode/modrm.h"
+#include "cpu/decode/operand.h"
 
 #include "all-instr.h"
 
@@ -152,7 +153,7 @@ helper_fun opcode_table [256] = {
 /* 0xdc */	inv, inv, inv, inv,
 /* 0xe0 */	inv, inv, inv, inv,
 /* 0xe4 */	inv, inv, inv, inv,
-/* 0xe8 */	inv, jmp_si_l, inv, jmp_si_b,
+/* 0xe8 */	call_rel_l,
 /* 0xec */	inv, inv, inv, inv,
 /* 0xf0 */	inv, inv, repnz, rep,
 /* 0xf4 */	inv, inv, group3_b, group3_v,
