@@ -4,6 +4,7 @@
 
 obj-y += call.o
 obj-y += push.o
+obj-y += test.o
 
 CC := gcc
 LD := ld

@@ -27,6 +27,8 @@
 #include "logic/shr.h"
 #include "logic/shrd.h"
 
+
+
 #include "string/rep.h"
 #include "string/scas.h"
 #include "string/stos.h"
@@ -38,3 +40,4 @@
 
 make_helper(call_rel32);
 make_helper(push_r_v);
+make_helper(test_r2rm_l);
