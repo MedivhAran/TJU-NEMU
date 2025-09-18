@@ -2,8 +2,8 @@
 
 .PHONY: nemu entry testcase kernel run gdb test submit clean
 
-# obj-y += call.o
-# obj-y += push.o
+obj-y += call.o
+obj-y += push.o
 
 CC := gcc
 LD := ld
@@ -18,7 +18,7 @@ LIBC := $(LIBC_LIB_DIR)/libc.a
 include config/Makefile.git
 include config/Makefile.build
 
-all: nemu testcase entry
+all: nemu
 
 
 ##### rules for building the project #####
