@@ -3,7 +3,7 @@
 .PHONY: nemu entry testcase kernel run gdb test submit clean
 
 obj-y += call.o
-obj-y += data-mov/push.o
+obj-y += push.o
 
 CC := gcc
 LD := ld
