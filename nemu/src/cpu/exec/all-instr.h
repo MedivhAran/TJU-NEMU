@@ -42,5 +42,3 @@ make_helper(call_rel32);
 make_helper(push_r_v);
 make_helper(test_r2rm_l);
 make_helper(je_i_b);
-make_helper(cmp_r2rm_b);
-make_helper(cmp_r2rm_v);
