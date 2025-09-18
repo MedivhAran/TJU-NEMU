@@ -1,4 +1,5 @@
 #include "cpu/exec/helper.h"
+
 // 'r' 表示寄存器, 'v' 表示 32位 (在 PA2 中)
 make_helper(push_r_v) {
     // 解码操作数：从 opcode 中获取寄存器编号
@@ -13,7 +14,8 @@ make_helper(push_r_v) {
 
     // 打印调试信息 (非常重要! 之前你漏了这一行)
     // reg_name() 是框架提供的函数，根据编号获取寄存器名字
-    print_asm("push ");
+    print_asm("push %%%s", regsl[reg_code]);
+
     // 返回指令长度
     return 1;
 }
