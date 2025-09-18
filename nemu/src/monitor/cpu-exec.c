@@ -1,4 +1,6 @@
 #include "monitor/monitor.h"
+#include "monitor/watchpoint.h"  
+#include "monitor/expr.h" 
 #include "cpu/helper.h"
 #include <setjmp.h>
 
@@ -10,6 +12,7 @@
 #define MAX_INSTR_TO_PRINT 10
 
 int nemu_state = STOP;
+
 
 int exec(swaddr_t);
 
@@ -33,6 +36,7 @@ void do_int3() {
 	printf("\nHit breakpoint at eip = 0x%08x\n", cpu.eip);
 	nemu_state = STOP;
 }
+
 
 /* Simulate how the CPU works. */
 void cpu_exec(volatile uint32_t n) {
@@ -73,7 +77,7 @@ void cpu_exec(volatile uint32_t n) {
 #endif
 
 		/* TODO: check watchpoints here. */
-
+		check_watchpoints();
 
 #ifdef HAS_DEVICE
 		extern void device_update();
