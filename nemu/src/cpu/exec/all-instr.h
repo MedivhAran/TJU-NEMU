@@ -37,4 +37,4 @@
 #include "special/special.h"
 
 make_helper(call_rel32);
-make_helper(push_ebp);
+make_helper(push_r_v);

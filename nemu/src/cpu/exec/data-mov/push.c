@@ -1,17 +1,17 @@
+// 文件: nemu/src/cpu/exec/data-mov/push.c
+
 #include "cpu/exec/helper.h"
 
+// 'r' 表示寄存器, 'v' 表示 32位 (在 PA2 中)
+make_helper(push_r_v) {
 
-make_helper(push_ebp) {
-    // 1. 将 esp 减 4
+    int reg_code = instr_fetch(eip, 1) & 0x7;
+
+    // 执行 push 操作
     cpu.esp -= 4;
+    swaddr_write(cpu.esp, 4, cpu.gpr[reg_code]._32);
 
-    // 2. 将 ebp 的值写入新的 esp 地址
-    // 参数：(地址, 写入字节数, 要写入的值)
-    swaddr_write(cpu.esp, 4, cpu.ebp);
-
-    // 3. 调试信息，这是好习惯
-    print_asm("push %%ebp");
-
-    // `push %ebp` 这条指令只占 1 个字节 (opcode 0x55)
+    // 打印调试信息
+    // 返回指令长度
     return 1;
 }
