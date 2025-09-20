@@ -5,6 +5,7 @@
 #include "data-mov/movext.h"
 #include "data-mov/cltd.h"
 #include "data-mov/push.h"
+#include "data-mov/pop.h"
 
 #include "arith/adc.h"
 #include "arith/dec.h"
@@ -22,7 +23,6 @@
 #include "control/call.h"
 #include "control/ret.h"
 #include "control/jcc.h"
-
 
 
 #include "logic/and.h"
