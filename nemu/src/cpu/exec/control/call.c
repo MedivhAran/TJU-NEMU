@@ -1,23 +1,26 @@
 #include "cpu/exec/helper.h"
-#include "cpu/reg.h" 
-make_helper(call_rel32) {
-    // 读取4字节的相对偏移量
-    int32_t offset = instr_fetch(eip + 1, 4);
 
-    // 将返回地址压栈
-    // call 指令长度是 1 (opcode) + 4 (offset) = 5 字节
-    // 返回地址是下一条指令的地址，即 eip + 5
-    cpu.esp -= 4; // 栈向下增长
-    swaddr_write(cpu.esp, 4, cpu.eip + 5);
+make_helper(call_si) {
+	int len = decode_si_l(eip + 1);
+	swaddr_t ret_addr = cpu.eip + len + 1;
+	swaddr_write(cpu.esp - 4, 4, ret_addr);
+	cpu.esp -= 4;
 
-    // 更新 EIP 实现跳转
-    // 新的 EIP = 当前EIP + 指令长度 + 偏移量
-    // 即 EIP = (eip + 5) + offset
-    cpu.eip += offset;
+	cpu.eip += op_src->val;
+	print_asm("call %x", cpu.eip + 1 + len);
 
-    // 打印调试信息
-    print_asm("call %x", cpu.eip + 5);
-
-    // 返回指令长度
-    return 5;
+	return len + 1;
 }
+
+make_helper(call_rm) {
+	int len = decode_rm_l(eip + 1);
+	swaddr_t ret_addr = cpu.eip + len + 1;
+	swaddr_write(cpu.esp - 4, 4, ret_addr);
+	cpu.esp -= 4;
+
+	cpu.eip = op_src->val - (len + 1);
+	print_asm("call *%s", op_src->str);
+
+	return len + 1;
+}
+

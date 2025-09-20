@@ -4,6 +4,7 @@
 #include "data-mov/xchg.h"
 #include "data-mov/movext.h"
 #include "data-mov/cltd.h"
+#include "data-mov/push.h"
 
 #include "arith/adc.h"
 #include "arith/dec.h"
@@ -17,6 +18,11 @@
 #include "arith/sub.h"
 
 #include "control/jmp.h"
+#include "control/call.h"
+#include "control/ret.h"
+
+
+
 
 #include "logic/and.h"
 #include "logic/or.h"
@@ -37,8 +43,3 @@
 #include "misc/misc.h"
 
 #include "special/special.h"
-
-make_helper(call_rel32);
-make_helper(push_r_v);
-make_helper(test_r2rm_l);
-make_helper(je_i_b);
