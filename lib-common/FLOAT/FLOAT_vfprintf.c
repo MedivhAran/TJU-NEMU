@@ -1,44 +1,30 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "FLOAT.h"
-#include <string.h>
-
-#ifdef LINUX_RT
-#include <sys/mman.h>
-#include <unistd.h>
-#endif
 
 extern char _vfprintf_internal;
 extern char _fpmaxtostr;
-extern char _ppfs_setargs;
 extern int __stdio_fwrite(char *buf, int len, FILE *stream);
 
 __attribute__((used)) static int format_FLOAT(FILE *stream, FLOAT f) {
-	/* Format a 16.16 fixed-point FLOAT to decimal with 6-digit fraction (truncate). */
-	char buf[64];
+	/* TODO: Format a FLOAT argument `f' and write the formating
+	 * result to `stream'. Keep the precision of the formating
+	 * result with 6 by truncating. For example:
+	 *              f          result
+	 *         0x00010000    "1.000000"
+	 *         0x00013333    "1.199996"
+	 */
 
-	int neg = (f < 0);
-	uint32_t uf = neg ? (uint32_t)(-f) : (uint32_t)f;
-	uint32_t ip = uf >> 16;                // integer part
-	uint32_t frac = uf & 0xFFFF;           // fractional 16-bit
-
-	/* Scale fractional part to 6 decimal digits: floor(frac * 1e6 / 2^16) */
-	uint32_t dec = (uint32_t)(((uint64_t)frac * 1000000ULL) >> 16);
-
-	if (neg) {
-		int len = sprintf(buf, "-%u.%06u", ip, dec);
-		return __stdio_fwrite(buf, len, stream);
-	} else {
-		int len = sprintf(buf, "%u.%06u", ip, dec);
-		return __stdio_fwrite(buf, len, stream);
-	}
+	char buf[80];
+	int len = sprintf(buf, "0x%08x", f);
+	return __stdio_fwrite(buf, len, stream);
 }
 
 static void modify_vfprintf() {
-	/* Redirect the call to _fpmaxtostr inside _vfprintf_internal to format_FLOAT().
-	 * We scan for a CALL rel32 whose resolved target is &_fpmaxtostr and patch
-	 * its rel32 to point to format_FLOAT. Under Linux runtime, make code pages
-	 * writable/executable temporarily with mprotect; under NEMU we directly write.
+	/* TODO: Implement this function to hijack the formating of "%f"
+	 * argument during the execution of `_vfprintf_internal'. Below
+	 * is the code section in _vfprintf_internal() relative to the
+	 * hijack.
 	 */
 
 #if 0
@@ -59,43 +45,11 @@ static void modify_vfprintf() {
 	} else if (ppfs->conv_num <= CONV_S) {  /* wide char or string */
 #endif
 
-	/* Runtime patching */
-	uint8_t *base = (uint8_t *)&_vfprintf_internal;
-	const uint8_t *target = (const uint8_t *)&_fpmaxtostr;
-	int patched = 0;
-
-	/* Search within a reasonable window */
-	const size_t scan_len = 8192; /* big enough for this function body */
-
-#ifdef LINUX_RT
-	long pagesz = sysconf(_SC_PAGESIZE);
-	if (pagesz <= 0) pagesz = 4096;
-#endif
-	size_t i = 0;
-	for (; i + 5 <= scan_len; i++) {
-		if (base[i] != 0xE8) continue; // call rel32
-		int32_t rel = *(int32_t *)(base + i + 1);
-		uint8_t *resolved = (base + i + 5) + rel;
-		if ((void *)resolved == (void *)target) {
-			/* Patch this call to format_FLOAT */
-			uint8_t *call_site = base + i;
-			uint8_t *next_ip = call_site + 5;
-			int32_t new_rel = (int32_t)((uint8_t *)&format_FLOAT - next_ip);
-
-#ifdef LINUX_RT
-			uintptr_t page = (uintptr_t)call_site & ~(uintptr_t)(pagesz - 1);
-			mprotect((void *)page, pagesz, PROT_READ | PROT_WRITE | PROT_EXEC);
-#endif
-			*(int32_t *)(call_site + 1) = new_rel;
-#ifdef LINUX_RT
-			mprotect((void *)page, pagesz, PROT_READ | PROT_EXEC);
-#endif
-			patched = 1;
-			break;
-		}
-	}
-
-	(void)patched; /* suppress unused warning if not checked */
+	/* You should modify the run-time binary to let the code above
+	 * call `format_FLOAT' defined in this source file, instead of
+	 * `_fpmaxtostr'. When this function returns, the action of the
+	 * code above should do the following:
+	 */
 
 #if 0
 	else if (ppfs->conv_num <= CONV_A) {  /* floating point */
@@ -113,10 +67,10 @@ static void modify_vfprintf() {
 }
 
 static void modify_ppfs_setargs() {
-	/* Patch _ppfs_setargs to avoid FPU when handling PA_DOUBLE:
-	 * locate the sequence "dd 02 89 58 4c dd 19 eb" (fldl/mov/fstpl/jmp)
-	 * and overwrite its first 5 bytes with a near jmp to the 64-bit
-	 * integer handler sequence "8B 3A 8B 6A 04 8D 5A 08 89 58 4C 89 39 89 69 04".
+	/* TODO: Implement this function to modify the action of preparing
+	 * "%f" arguments for _vfprintf_internal() in _ppfs_setargs().
+	 * Below is the code section in _vfprintf_internal() relative to
+	 * the modification.
 	 */
 
 #if 0
@@ -211,94 +165,10 @@ static void modify_ppfs_setargs() {
 	}
 #endif
 
-	uint8_t *base = (uint8_t *)&_ppfs_setargs;
-	const size_t scan_len = 8192;
-
-	const uint8_t pat_double[]      = {0xDD,0x02,0x89,0x58,0x4C,0xDD,0x19,0xEB};
-	const uint8_t pat_double_pref1[] = {0xDD,0x02}; /* 通用 FLD m64fp 前缀 */
-	const uint8_t pat_double_pref2[] = {0xDD,0x02,0x53,0x53,0x68}; /* 观测到的序列: fld; push; push; push imm32 */
-	const uint8_t pat_ll[]          = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08,0x89,0x58,0x4C,0x89,0x39,0x89,0x69,0x04};
-	const uint8_t pat_ll_pref1[]    = {0x8B,0x3A,0x8B,0x6A,0x04};
-	const uint8_t pat_ll_pref2[]    = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08};
-
-	int32_t idx_double = -1, idx_ll = -1;
-	size_t i;
-	for (i = 0; i + sizeof(pat_double) <= scan_len; i++) {
-		if (memcmp(base + i, pat_double, sizeof(pat_double)) == 0) {
-			idx_double = (int32_t)i;
-			break;
-		}
-	}
-	/* 若找不到完整 double 模式，退化为寻找通用 FPU 指令前缀 dd 02 */
-	if (idx_double < 0) {
-		/* 优先匹配更长的前缀，降低误判 */
-		for (i = 0; i + sizeof(pat_double_pref2) <= scan_len; i++) {
-			if (memcmp(base + i, pat_double_pref2, sizeof(pat_double_pref2)) == 0) {
-				idx_double = (int32_t)i;
-				break;
-			}
-		}
-		if (idx_double < 0) {
-			for (i = 0; i + sizeof(pat_double_pref1) <= scan_len; i++) {
-				if (memcmp(base + i, pat_double_pref1, sizeof(pat_double_pref1)) == 0) {
-					idx_double = (int32_t)i;
-					break;
-				}
-			}
-		}
-	}
-	for (i = 0; i + sizeof(pat_ll) <= scan_len; i++) {
-		if (memcmp(base + i, pat_ll, sizeof(pat_ll)) == 0) {
-			idx_ll = (int32_t)i;
-			break;
-		}
-	}
-	/* 若找不到完整 LL 模式，尝试匹配其前缀 */
-	if (idx_ll < 0) {
-		for (i = 0; i + sizeof(pat_ll_pref2) <= scan_len; i++) {
-			if (memcmp(base + i, pat_ll_pref2, sizeof(pat_ll_pref2)) == 0) {
-				idx_ll = (int32_t)i;
-				break;
-			}
-		}
-		if (idx_ll < 0) {
-			for (i = 0; i + sizeof(pat_ll_pref1) <= scan_len; i++) {
-				if (memcmp(base + i, pat_ll_pref1, sizeof(pat_ll_pref1)) == 0) {
-					idx_ll = (int32_t)i;
-					break;
-				}
-			}
-		}
-	}
-
-	if (idx_double >= 0 && idx_ll >= 0) {
-		uint8_t *src = base + idx_double;      /* points at dd 02 ... */
-		uint8_t *dst = base + idx_ll;          /* beginning of LL handler */
-		uint8_t *next = src + 5;               /* after overwritten bytes */
-		int32_t rel = (int32_t)(dst - next);
-#if 1
-		/* 健全性检查：确保跳转目标在扫描窗口内，避免误补丁 */
-		if (dst < (uint8_t *)base || dst > (uint8_t *)base + scan_len) {
-			return; /* 放弃补丁 */
-		}
-#endif
-
-#ifdef LINUX_RT
-		long pagesz = sysconf(_SC_PAGESIZE);
-		if (pagesz <= 0) pagesz = 4096;
-		uintptr_t page = (uintptr_t)src & ~(uintptr_t)(pagesz - 1);
-		mprotect((void *)page, pagesz, PROT_READ | PROT_WRITE | PROT_EXEC);
-#endif
-		src[0] = 0xE9;                         /* jmp rel32 */
-		*(int32_t *)(src + 1) = rel;
-#ifdef LINUX_RT
-		mprotect((void *)page, pagesz, PROT_READ | PROT_EXEC);
-#endif
-	}
-
 }
 
 void init_FLOAT_vfprintf() {
-	modify_vfprintf();
+	/* 暂停修改 _vfprintf_internal，避免参数约定不匹配引发非法内存写 */
+	/* modify_vfprintf(); */
 	modify_ppfs_setargs();
 }
