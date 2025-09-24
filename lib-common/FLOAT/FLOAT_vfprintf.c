@@ -272,5 +272,5 @@ static void modify_ppfs_setargs() {
 
 void init_FLOAT_vfprintf() {
 	modify_vfprintf();
-	//modify_ppfs_setargs();
+	modify_ppfs_setargs();
 }
