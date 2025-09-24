@@ -75,4 +75,5 @@ test: $(nemu_BIN) $(testcase_BIN) entry
 	bash test.sh $(testcase_BIN)
 
 submit: clean
-	cd .. && zip -r $(STU_ID).zip $(shell pwd | grep -o '[^/]*$$')
+	# 删除旧的提交包，避免历史目录被追加进同一个 zip
+	cd .. && rm -f $(STU_ID).zip && zip -r $(STU_ID).zip $(shell pwd | grep -o '[^/]*$$')
