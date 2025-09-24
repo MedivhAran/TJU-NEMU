@@ -21,6 +21,17 @@ uint32_t look_up_symtab(char *sym){
     return 0;
 }
 
+const char *search_func_name(uint32_t eip){
+    static const char not_found[] = "No func found";
+    int i;
+    for(i=0;i<nr_symtab_entry;i++){
+    uint8_t type = ELF32_ST_TYPE(symtab[i].st_info); 
+    if(type == STT_FUNC && eip>=symtab[i].st_value && eip<symtab[i].st_value + symtab[i].st_size){   
+        return strtab + symtab[i].st_name;
+        }
+    }
+    return not_found;
+}
 
 void load_elf_tables(int argc, char *argv[]) {
 	int ret;
