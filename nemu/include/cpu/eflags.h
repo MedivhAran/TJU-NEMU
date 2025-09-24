@@ -9,4 +9,9 @@ static inline bool check_cc_e(){
         return cpu.eflags.ZF;
 }
 
+
+static inline bool check_cc_be(){
+        return cpu.eflags.CF | cpu.eflags.ZF;
+
+}
 #endif
