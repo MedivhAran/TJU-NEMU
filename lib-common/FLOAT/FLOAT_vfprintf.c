@@ -214,10 +214,12 @@ static void modify_ppfs_setargs() {
 	uint8_t *base = (uint8_t *)&_ppfs_setargs;
 	const size_t scan_len = 8192;
 
-	const uint8_t pat_double[]     = {0xDD,0x02,0x89,0x58,0x4C,0xDD,0x19,0xEB};
-	const uint8_t pat_double_pref[] = {0xDD,0x02}; /* 通用 FLD m64fp 前缀 */
-	const uint8_t pat_ll[]         = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08,0x89,0x58,0x4C,0x89,0x39,0x89,0x69,0x04};
-	const uint8_t pat_ll_pref[]    = {0x8B,0x3A,0x8B,0x6A,0x04};
+	const uint8_t pat_double[]      = {0xDD,0x02,0x89,0x58,0x4C,0xDD,0x19,0xEB};
+	const uint8_t pat_double_pref1[] = {0xDD,0x02}; /* 通用 FLD m64fp 前缀 */
+	const uint8_t pat_double_pref2[] = {0xDD,0x02,0x53,0x53,0x68}; /* 观测到的序列: fld; push; push; push imm32 */
+	const uint8_t pat_ll[]          = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08,0x89,0x58,0x4C,0x89,0x39,0x89,0x69,0x04};
+	const uint8_t pat_ll_pref1[]    = {0x8B,0x3A,0x8B,0x6A,0x04};
+	const uint8_t pat_ll_pref2[]    = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08};
 
 	int32_t idx_double = -1, idx_ll = -1;
 	size_t i;
@@ -229,10 +231,19 @@ static void modify_ppfs_setargs() {
 	}
 	/* 若找不到完整 double 模式，退化为寻找通用 FPU 指令前缀 dd 02 */
 	if (idx_double < 0) {
-		for (i = 0; i + sizeof(pat_double_pref) <= scan_len; i++) {
-			if (memcmp(base + i, pat_double_pref, sizeof(pat_double_pref)) == 0) {
+		/* 优先匹配更长的前缀，降低误判 */
+		for (i = 0; i + sizeof(pat_double_pref2) <= scan_len; i++) {
+			if (memcmp(base + i, pat_double_pref2, sizeof(pat_double_pref2)) == 0) {
 				idx_double = (int32_t)i;
 				break;
+			}
+		}
+		if (idx_double < 0) {
+			for (i = 0; i + sizeof(pat_double_pref1) <= scan_len; i++) {
+				if (memcmp(base + i, pat_double_pref1, sizeof(pat_double_pref1)) == 0) {
+					idx_double = (int32_t)i;
+					break;
+				}
 			}
 		}
 	}
@@ -244,10 +255,18 @@ static void modify_ppfs_setargs() {
 	}
 	/* 若找不到完整 LL 模式，尝试匹配其前缀 */
 	if (idx_ll < 0) {
-		for (i = 0; i + sizeof(pat_ll_pref) <= scan_len; i++) {
-			if (memcmp(base + i, pat_ll_pref, sizeof(pat_ll_pref)) == 0) {
+		for (i = 0; i + sizeof(pat_ll_pref2) <= scan_len; i++) {
+			if (memcmp(base + i, pat_ll_pref2, sizeof(pat_ll_pref2)) == 0) {
 				idx_ll = (int32_t)i;
 				break;
+			}
+		}
+		if (idx_ll < 0) {
+			for (i = 0; i + sizeof(pat_ll_pref1) <= scan_len; i++) {
+				if (memcmp(base + i, pat_ll_pref1, sizeof(pat_ll_pref1)) == 0) {
+					idx_ll = (int32_t)i;
+					break;
+				}
 			}
 		}
 	}
@@ -257,6 +276,12 @@ static void modify_ppfs_setargs() {
 		uint8_t *dst = base + idx_ll;          /* beginning of LL handler */
 		uint8_t *next = src + 5;               /* after overwritten bytes */
 		int32_t rel = (int32_t)(dst - next);
+#if 1
+		/* 健全性检查：确保跳转目标在扫描窗口内，避免误补丁 */
+		if (dst < (uint8_t *)base || dst > (uint8_t *)base + scan_len) {
+			return; /* 放弃补丁 */
+		}
+#endif
 
 #ifdef LINUX_RT
 		long pagesz = sysconf(_SC_PAGESIZE);
