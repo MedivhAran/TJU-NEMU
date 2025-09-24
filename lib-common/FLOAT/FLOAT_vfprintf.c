@@ -168,7 +168,6 @@ static void modify_ppfs_setargs() {
 }
 
 void init_FLOAT_vfprintf() {
-	/* 暂停修改 _vfprintf_internal，避免参数约定不匹配引发非法内存写 */
-	/* modify_vfprintf(); */
+	modify_vfprintf();
 	modify_ppfs_setargs();
 }
