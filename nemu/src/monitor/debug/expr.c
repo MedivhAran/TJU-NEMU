@@ -1,13 +1,13 @@
 #include "nemu.h"
+#include <stdint.h>
 #include <sys/types.h>
 #include <regex.h>
-#include <stdlib.h>  // for strtoul
-#include <string.h>  // for strcmp, strncpy
-
+#include <stdlib.h>  
+#include <string.h>  
 // Token 类型枚举
 enum {
   NOTYPE = 256, EQ, NEQ, AND, OR,
-  HEX, DEC, REG, DEREF, NEG, LT, LE, GT, GE, NOT
+  HEX, DEC, REG, DEREF, NEG, LT, LE, GT, GE, NOT, VARIABLE
 };
 
 static struct rule {
@@ -29,6 +29,8 @@ static struct rule {
   {"&&",    AND},                 // 与
   {"\\|\\|", OR},                  // 或
   {"!",  NOT},
+  
+  {"[a-zA-Z_]{1,31}",VARIABLE}                    //变量
 };
 #define NR_REGEX (sizeof(rules) / sizeof(rules[0]))
 static regex_t re[NR_REGEX];
@@ -53,6 +55,9 @@ typedef struct token {
 
 Token tokens[32];
 int nr_token;
+
+/* from debug/elf.c */
+extern uint32_t look_up_symtab(char *sym);
 
 
 static bool make_token(char *e) {
@@ -87,6 +92,7 @@ static bool make_token(char *e) {
                         tokens[nr_token].type = DEREF;
                     }
 		}
+
 		if (rules[i].token_type == '-') {
 			if (nr_token == 0 ||
 				(tokens[nr_token - 1].type != DEC &&
@@ -105,10 +111,16 @@ static bool make_token(char *e) {
 				tokens[nr_token].type = NOT;
 			}
 		}
+    if (rules[i].token_type == VARIABLE) {
+      tokens[nr_token].type = VARIABLE;
+      Assert(substr_len < sizeof(tokens[nr_token].str), "token too long: %.*s", substr_len, substr_start);
+      strncpy(tokens[nr_token].str, substr_start, substr_len);
+      tokens[nr_token].str[substr_len] = '\0';
+    }
 
 
 
-        if (rules[i].token_type == DEC || rules[i].token_type == HEX || rules[i].token_type == REG) 
+    if (rules[i].token_type == DEC || rules[i].token_type == HEX || rules[i].token_type == REG) 
 		{
           Assert(substr_len < sizeof(tokens[nr_token].str),"token too long: %.*s", substr_len, substr_start);
           strncpy(tokens[nr_token].str, substr_start, substr_len);
@@ -176,6 +188,7 @@ static int precedence(int type) {
     case '+': case '-': return 4;
     case '*': case '/': return 5;
 	case DEREF: case NEG :case NOT : return 7;
+
   }
   return 0;
 }
@@ -238,7 +251,8 @@ static uint32_t eval(int p, int q) {
     	return !eval(op + 1, q);
 	}
 
-    uint32_t val1 = eval(p, op - 1);
+  /* 单目运算已在前面处理，这里是双目或比较等 */
+  uint32_t val1 = eval(p, op - 1);
     uint32_t val2 = eval(op + 1, q);
 
     switch (tokens[op].type) {
