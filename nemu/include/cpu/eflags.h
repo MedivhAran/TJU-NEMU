@@ -33,5 +33,8 @@ static inline bool check_cc_g(){
         return !((cpu.eflags.OF ^ cpu.eflags.SF) | cpu.eflags.ZF);
 }
 
+static inline bool check_cc_ge(){
+        return !(cpu.eflags.OF ^ cpu.eflags.SF);
+}
 
 #endif
