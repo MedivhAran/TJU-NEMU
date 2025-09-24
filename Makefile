@@ -55,7 +55,7 @@ clean: clean-cpp
 
 ##### some convinient rules #####
 
-USERPROG := obj/testcase/gotbaha
+USERPROG := obj/testcase/leap-year
 ENTRY := $(USERPROG)
 
 
