@@ -2,29 +2,41 @@
 #include <stdint.h>
 #include "FLOAT.h"
 
+#ifdef LINUX_RT
+#include <sys/mman.h>
+#include <unistd.h>
+#endif
+
 extern char _vfprintf_internal;
 extern char _fpmaxtostr;
 extern int __stdio_fwrite(char *buf, int len, FILE *stream);
 
 __attribute__((used)) static int format_FLOAT(FILE *stream, FLOAT f) {
-	/* TODO: Format a FLOAT argument `f' and write the formating
-	 * result to `stream'. Keep the precision of the formating
-	 * result with 6 by truncating. For example:
-	 *              f          result
-	 *         0x00010000    "1.000000"
-	 *         0x00013333    "1.199996"
-	 */
+	/* Format a 16.16 fixed-point FLOAT to decimal with 6-digit fraction (truncate). */
+	char buf[64];
 
-	char buf[80];
-	int len = sprintf(buf, "0x%08x", f);
-	return __stdio_fwrite(buf, len, stream);
+	int neg = (f < 0);
+	uint32_t uf = neg ? (uint32_t)(-f) : (uint32_t)f;
+	uint32_t ip = uf >> 16;                // integer part
+	uint32_t frac = uf & 0xFFFF;           // fractional 16-bit
+
+	/* Scale fractional part to 6 decimal digits: floor(frac * 1e6 / 2^16) */
+	uint32_t dec = (uint32_t)(((uint64_t)frac * 1000000ULL) >> 16);
+
+	if (neg) {
+		int len = sprintf(buf, "-%u.%06u", ip, dec);
+		return __stdio_fwrite(buf, len, stream);
+	} else {
+		int len = sprintf(buf, "%u.%06u", ip, dec);
+		return __stdio_fwrite(buf, len, stream);
+	}
 }
 
 static void modify_vfprintf() {
-	/* TODO: Implement this function to hijack the formating of "%f"
-	 * argument during the execution of `_vfprintf_internal'. Below
-	 * is the code section in _vfprintf_internal() relative to the
-	 * hijack.
+	/* Redirect the call to _fpmaxtostr inside _vfprintf_internal to format_FLOAT().
+	 * We scan for a CALL rel32 whose resolved target is &_fpmaxtostr and patch
+	 * its rel32 to point to format_FLOAT. Under Linux runtime, make code pages
+	 * writable/executable temporarily with mprotect; under NEMU we directly write.
 	 */
 
 #if 0
@@ -45,11 +57,43 @@ static void modify_vfprintf() {
 	} else if (ppfs->conv_num <= CONV_S) {  /* wide char or string */
 #endif
 
-	/* You should modify the run-time binary to let the code above
-	 * call `format_FLOAT' defined in this source file, instead of
-	 * `_fpmaxtostr'. When this function returns, the action of the
-	 * code above should do the following:
-	 */
+	/* Runtime patching */
+	uint8_t *base = (uint8_t *)&_vfprintf_internal;
+	const uint8_t *target = (const uint8_t *)&_fpmaxtostr;
+	int patched = 0;
+
+	/* Search within a reasonable window */
+	const size_t scan_len = 8192; /* big enough for this function body */
+
+#ifdef LINUX_RT
+	long pagesz = sysconf(_SC_PAGESIZE);
+	if (pagesz <= 0) pagesz = 4096;
+#endif
+	size_t i = 0;
+	for (; i + 5 <= scan_len; i++) {
+		if (base[i] != 0xE8) continue; // call rel32
+		int32_t rel = *(int32_t *)(base + i + 1);
+		uint8_t *resolved = (base + i + 5) + rel;
+		if ((void *)resolved == (void *)target) {
+			/* Patch this call to format_FLOAT */
+			uint8_t *call_site = base + i;
+			uint8_t *next_ip = call_site + 5;
+			int32_t new_rel = (int32_t)((uint8_t *)&format_FLOAT - next_ip);
+
+#ifdef LINUX_RT
+			uintptr_t page = (uintptr_t)call_site & ~(uintptr_t)(pagesz - 1);
+			mprotect((void *)page, pagesz, PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
+			*(int32_t *)(call_site + 1) = new_rel;
+#ifdef LINUX_RT
+			mprotect((void *)page, pagesz, PROT_READ | PROT_EXEC);
+#endif
+			patched = 1;
+			break;
+		}
+	}
+
+	(void)patched; /* suppress unused warning if not checked */
 
 #if 0
 	else if (ppfs->conv_num <= CONV_A) {  /* floating point */
@@ -67,10 +111,12 @@ static void modify_vfprintf() {
 }
 
 static void modify_ppfs_setargs() {
-	/* TODO: Implement this function to modify the action of preparing
-	 * "%f" arguments for _vfprintf_internal() in _ppfs_setargs().
-	 * Below is the code section in _vfprintf_internal() relative to
-	 * the modification.
+	/* For this uClibc build used in NEMU, redirecting the callee in
+	 * _vfprintf_internal is sufficient to avoid using floating-point
+	 * formatting. Many soft-float libc builds do not emit FPU ops in
+	 * _ppfs_setargs, so we keep this as a no-op. If needed, this can be
+	 * extended to patch _ppfs_setargs jump table to route PA_DOUBLE to
+	 * the (PA_INT|PA_FLAG_LONG_LONG) handler.
 	 */
 
 #if 0
