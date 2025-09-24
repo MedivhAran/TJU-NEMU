@@ -10,7 +10,7 @@
  
 make_jcc_helper(e)
 make_jcc_helper(be)
-
+make_jcc_helper(ne)
 make_jcc_helper(l)
 make_jcc_helper(le)
 make_jcc_helper(g)
