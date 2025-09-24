@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include "FLOAT.h"
+#include <string.h>
 
 #ifdef LINUX_RT
 #include <sys/mman.h>
@@ -111,12 +112,10 @@ static void modify_vfprintf() {
 }
 
 static void modify_ppfs_setargs() {
-	/* For this uClibc build used in NEMU, redirecting the callee in
-	 * _vfprintf_internal is sufficient to avoid using floating-point
-	 * formatting. Many soft-float libc builds do not emit FPU ops in
-	 * _ppfs_setargs, so we keep this as a no-op. If needed, this can be
-	 * extended to patch _ppfs_setargs jump table to route PA_DOUBLE to
-	 * the (PA_INT|PA_FLAG_LONG_LONG) handler.
+	/* Patch _ppfs_setargs to avoid FPU when handling PA_DOUBLE:
+	 * locate the sequence "dd 02 89 58 4c dd 19 eb" (fldl/mov/fstpl/jmp)
+	 * and overwrite its first 5 bytes with a near jmp to the 64-bit
+	 * integer handler sequence "8B 3A 8B 6A 04 8D 5A 08 89 58 4C 89 39 89 69 04".
 	 */
 
 #if 0
@@ -210,6 +209,45 @@ static void modify_ppfs_setargs() {
 		++p;
 	}
 #endif
+
+	uint8_t *base = (uint8_t *)&_ppfs_setargs;
+	const size_t scan_len = 8192;
+
+	const uint8_t pat_double[] = {0xDD,0x02,0x89,0x58,0x4C,0xDD,0x19,0xEB};
+	const uint8_t pat_ll[]     = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08,0x89,0x58,0x4C,0x89,0x39,0x89,0x69,0x04};
+
+	ssize_t idx_double = -1, idx_ll = -1;
+	for (size_t i = 0; i + sizeof(pat_double) <= scan_len; i++) {
+		if (memcmp(base + i, pat_double, sizeof(pat_double)) == 0) {
+			idx_double = (ssize_t)i;
+			break;
+		}
+	}
+	for (size_t i = 0; i + sizeof(pat_ll) <= scan_len; i++) {
+		if (memcmp(base + i, pat_ll, sizeof(pat_ll)) == 0) {
+			idx_ll = (ssize_t)i;
+			break;
+		}
+	}
+
+	if (idx_double >= 0 && idx_ll >= 0) {
+		uint8_t *src = base + idx_double;      /* points at dd 02 ... */
+		uint8_t *dst = base + idx_ll;          /* beginning of LL handler */
+		uint8_t *next = src + 5;               /* after overwritten bytes */
+		int32_t rel = (int32_t)(dst - next);
+
+#ifdef LINUX_RT
+		long pagesz = sysconf(_SC_PAGESIZE);
+		if (pagesz <= 0) pagesz = 4096;
+		uintptr_t page = (uintptr_t)src & ~(uintptr_t)(pagesz - 1);
+		mprotect((void *)page, pagesz, PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
+		src[0] = 0xE9;                         /* jmp rel32 */
+		*(int32_t *)(src + 1) = rel;
+#ifdef LINUX_RT
+		mprotect((void *)page, pagesz, PROT_READ | PROT_EXEC);
+#endif
+	}
 
 }
 
