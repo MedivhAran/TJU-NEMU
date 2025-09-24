@@ -3,20 +3,12 @@
 FLOAT_O := $(FLOAT:.a=.o)
 FLOAT_VFPRINTF_O := $(dir $(FLOAT))FLOAT_vfprintf.o
 
-# Linux 运行时使用的独立库，专门把 FLOAT_vfprintf 以 -DLINUX_RT 编译
-FLOAT_LINUX := $(dir $(FLOAT))FLOAT-linux.a
-FLOAT_LINUX_O := $(dir $(FLOAT))FLOAT-linux.o
-FLOAT_VFPRINTF_LINUX_O := $(dir $(FLOAT))FLOAT_vfprintf-linux.o
-
 FLOAT_A_OBJ := $(FLOAT_O) $(FLOAT_VFPRINTF_O)
 
 $(FLOAT): $(FLOAT_A_OBJ)
 	ar r $@ $^
 
-$(FLOAT_LINUX): $(FLOAT_LINUX_O) $(FLOAT_VFPRINTF_LINUX_O)
-	ar r $@ $^
-
-# 编译选项
+# TODO: complete the following rules
 FLOAT_CFLAGS := -m32 -fno-builtin -I$(LIB_COMMON_DIR) -O2 -march=i386
  
 $(FLOAT_O): lib-common/FLOAT/FLOAT.c
@@ -26,13 +18,4 @@ $(FLOAT_O): lib-common/FLOAT/FLOAT.c
 $(FLOAT_VFPRINTF_O): lib-common/FLOAT/FLOAT_vfprintf.c
 	mkdir -p $(@D)
 	gcc $(FLOAT_CFLAGS) -fno-stack-protector -D_FORTIFY_SOURCE=0 -c -o $@ $<
-
-# Linux 运行时的对象
-$(FLOAT_LINUX_O): lib-common/FLOAT/FLOAT.c
-	mkdir -p $(@D)
-	gcc $(FLOAT_CFLAGS) -c -o $@ $<
-
-$(FLOAT_VFPRINTF_LINUX_O): lib-common/FLOAT/FLOAT_vfprintf.c
-	mkdir -p $(@D)
-	gcc $(FLOAT_CFLAGS) -DLINUX_RT -fno-stack-protector -D_FORTIFY_SOURCE=0 -c -o $@ $<
 
