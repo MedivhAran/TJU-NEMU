@@ -10,6 +10,7 @@
 
 extern char _vfprintf_internal;
 extern char _fpmaxtostr;
+extern char _ppfs_setargs;
 extern int __stdio_fwrite(char *buf, int len, FILE *stream);
 
 __attribute__((used)) static int format_FLOAT(FILE *stream, FLOAT f) {
@@ -216,16 +217,17 @@ static void modify_ppfs_setargs() {
 	const uint8_t pat_double[] = {0xDD,0x02,0x89,0x58,0x4C,0xDD,0x19,0xEB};
 	const uint8_t pat_ll[]     = {0x8B,0x3A,0x8B,0x6A,0x04,0x8D,0x5A,0x08,0x89,0x58,0x4C,0x89,0x39,0x89,0x69,0x04};
 
-	ssize_t idx_double = -1, idx_ll = -1;
-	for (size_t i = 0; i + sizeof(pat_double) <= scan_len; i++) {
+	int32_t idx_double = -1, idx_ll = -1;
+	size_t i;
+	for (i = 0; i + sizeof(pat_double) <= scan_len; i++) {
 		if (memcmp(base + i, pat_double, sizeof(pat_double)) == 0) {
-			idx_double = (ssize_t)i;
+			idx_double = (int32_t)i;
 			break;
 		}
 	}
-	for (size_t i = 0; i + sizeof(pat_ll) <= scan_len; i++) {
+	for (i = 0; i + sizeof(pat_ll) <= scan_len; i++) {
 		if (memcmp(base + i, pat_ll, sizeof(pat_ll)) == 0) {
-			idx_ll = (ssize_t)i;
+			idx_ll = (int32_t)i;
 			break;
 		}
 	}
