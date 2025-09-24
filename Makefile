@@ -2,11 +2,9 @@
 
 .PHONY: nemu entry testcase kernel run gdb test submit clean
 
-
-
 CC := gcc
 LD := ld
-CFLAGS := -MMD -Wall -Werror -c -O0
+CFLAGS := -MMD -Wall -Werror -c
 
 LIB_COMMON_DIR := lib-common
 LIBC_INC_DIR := $(LIB_COMMON_DIR)/uclibc/include
@@ -56,8 +54,8 @@ clean: clean-cpp
 ##### some convinient rules #####
 
 USERPROG := obj/testcase/integral
-ENTRY := $(USERPROG)
-
+#ENTRY := $(USERPROG)
+ENTRY := $(kernel_BIN)
 
 entry: $(ENTRY)
 	objcopy -S -O binary $(ENTRY) entry
