@@ -12,7 +12,7 @@ enum {
 
 static struct rule {
   char *regex;
-  int token_type;
+  int token_type;   
 } rules[] = {
   {" +",    NOTYPE},             // 空格
   {"\\+",   '+'},                 // 加号
