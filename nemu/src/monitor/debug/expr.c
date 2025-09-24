@@ -229,6 +229,10 @@ static uint32_t eval(int p, int q) {
       Assert(ok, "Unknown register: %s", tokens[p].str);
       return val;
     }
+    if (tokens[p].type == VARIABLE) {
+      uint32_t addr = look_up_symtab(tokens[p].str);
+      return addr;
+    }
     Assert(0, "Unexpected token type %d", tokens[p].type);
   }
   else if (check_parentheses_outer(p, q)) {
