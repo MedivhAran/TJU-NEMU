@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#ifdef LINUX_RT
 #include <sys/mman.h>
+#endif
 #include "FLOAT.h"
 
 extern char _vfprintf_internal;
@@ -69,10 +71,12 @@ static void modify_vfprintf() {
 
 	// -------- 实际劫持实现 --------
 	uint8_t *p = (uint8_t *)&_vfprintf_internal;
-	// 提前放开相邻内存页的写权限
+	// 提前放开相邻内存页的写权限（仅在 GNU/Linux 运行时）
 	uintptr_t base = (uintptr_t)p;
 	uintptr_t page = base & ~(uintptr_t)0xfff;
+#ifdef LINUX_RT
 	mprotect((void *)page, 4096 * 4, PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
 
 	// 1) 定位 call _fpmaxtostr 的位置
 	int call_idx = -1;
@@ -226,7 +230,9 @@ static void modify_ppfs_setargs() {
 	// -------- 实际修改实现 --------
 	uint8_t *p = (uint8_t *)&_ppfs_setargs;
 	uintptr_t page = ((uintptr_t)p) & ~(uintptr_t)0xfff;
+#ifdef LINUX_RT
 	mprotect((void *)page, 4096 * 2, PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
 
 	// 在函数前 0x400 字节中，先找到 "lea 0x8(%edx),%ebx; fldl (%edx)" 的位置，
 	// 再在后续寻找 64 位搬运块 "mov (%edx),%edi; mov 0x4(%edx),%ebp" 的起点，
