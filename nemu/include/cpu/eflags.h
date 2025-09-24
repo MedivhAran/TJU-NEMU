@@ -19,4 +19,19 @@ static inline bool check_cc_ne(){
         return !cpu.eflags.ZF;
 }
 
+
+static inline bool check_cc_le(){
+        return (cpu.eflags.OF ^ cpu.eflags.SF) | cpu.eflags.ZF;
+}
+
+
+static inline bool check_cc_l(){
+        return cpu.eflags.OF ^ cpu.eflags.SF;
+}
+
+static inline bool check_cc_g(){
+        return !((cpu.eflags.OF ^ cpu.eflags.SF) | cpu.eflags.ZF);
+}
+
+
 #endif
