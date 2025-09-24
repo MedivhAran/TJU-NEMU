@@ -36,7 +36,7 @@ $(testcase_OBJ_DIR)/print-FLOAT-linux: % : \
 	$(LIBC_LIB_DIR)/crt1.o \
 	$(LIBC_LIB_DIR)/crti.o \
 	%.o \
-	$(FLOAT) \
+	$(dir $(FLOAT))FLOAT-linux.a \
 	$(LIBC) \
 	$(LIBC_LIB_DIR)/crtn.o
 	$(call make_command, $(LD), -m elf_i386, ld $@, $^)

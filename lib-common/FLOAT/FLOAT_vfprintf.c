@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdint.h>
+#ifdef LINUX_RT
 #include <sys/mman.h>
+#endif
 #include "FLOAT.h"
 
 extern char _vfprintf_internal;
@@ -69,10 +71,6 @@ static void modify_vfprintf() {
 
 	// -------- 实际劫持实现 --------
 	uint8_t *p = (uint8_t *)&_vfprintf_internal;
-	// 提前放开相邻内存页的写权限
-	uintptr_t base = (uintptr_t)p;
-	uintptr_t page = base & ~(uintptr_t)0xfff;
-	mprotect((void *)page, 4096 * 4, PROT_READ | PROT_WRITE | PROT_EXEC);
 
 	// 1) 定位 call _fpmaxtostr 的位置
 	int call_idx = -1;
@@ -86,6 +84,13 @@ static void modify_vfprintf() {
 	}
 	if (call_idx < 0) return; // 未找到，放弃
 
+#ifdef LINUX_RT
+	// 根据讲义，修改范围应覆盖 call 指令往前约 100 字节所在页
+	uint8_t *protect_addr = p + (call_idx >= 100 ? call_idx - 100 : 0);
+	uintptr_t page = ((uintptr_t)protect_addr) & ~(uintptr_t)0xfff;
+	if (mprotect((void *)page, 4096 * 2, PROT_READ | PROT_WRITE | PROT_EXEC) != 0) return;
+#endif
+
 	// 2) 在 call 之前的窗口内，处理参数与浮点指令
 	int win_begin = call_idx - 100; if (win_begin < 0) win_begin = 0;
 	int win_end = call_idx;       // 不含 call 自身
@@ -98,6 +103,8 @@ static void modify_vfprintf() {
 		// 2.b 查找 sub esp, imm8(0x0c) -> 83 ec 0c
 		if (p[i] == 0x83 && p[i + 1] == 0xEC) { subesp_idx = i; }
 	}
+	// 必须都命中才 patch，否则直接 return
+	if (fstpt_idx < 0 || subesp_idx < 0) return;
 	if (fstpt_idx >= 0) {
 		// 替换为: push DWORD PTR [edx] (ff 32) + nop
 		p[fstpt_idx + 0] = 0xFF; // push r/m32
@@ -225,8 +232,10 @@ static void modify_ppfs_setargs() {
 
 	// -------- 实际修改实现 --------
 	uint8_t *p = (uint8_t *)&_ppfs_setargs;
+#ifdef LINUX_RT
 	uintptr_t page = ((uintptr_t)p) & ~(uintptr_t)0xfff;
 	mprotect((void *)page, 4096 * 2, PROT_READ | PROT_WRITE | PROT_EXEC);
+#endif
 
 	// 在函数前 0x400 字节中，先找到 "lea 0x8(%edx),%ebx; fldl (%edx)" 的位置，
 	// 再在后续寻找 64 位搬运块 "mov (%edx),%edi; mov 0x4(%edx),%ebp" 的起点，
@@ -263,5 +272,5 @@ static void modify_ppfs_setargs() {
 
 void init_FLOAT_vfprintf() {
 	modify_vfprintf();
-	modify_ppfs_setargs();
+	//modify_ppfs_setargs();
 }
