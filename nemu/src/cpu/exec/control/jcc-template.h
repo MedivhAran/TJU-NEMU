@@ -17,4 +17,12 @@ make_jcc_helper(g)
 make_jcc_helper(ge)
 make_jcc_helper(a)
 
+make_jcc_helper(o)
+make_jcc_helper(no)
+make_jcc_helper(b)
+make_jcc_helper(ae)
+make_jcc_helper(s)
+make_jcc_helper(ns)
+make_jcc_helper(p)
+make_jcc_helper(np)
 #include "cpu/exec/template-end.h"

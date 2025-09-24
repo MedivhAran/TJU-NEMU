@@ -55,7 +55,7 @@ clean: clean-cpp
 
 ##### some convinient rules #####
 
-USERPROG := obj/testcase/switch
+USERPROG := obj/testcase/select-sort
 ENTRY := $(USERPROG)
 
 
