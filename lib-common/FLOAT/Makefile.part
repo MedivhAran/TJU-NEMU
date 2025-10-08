@@ -9,8 +9,13 @@ $(FLOAT): $(FLOAT_A_OBJ)
 	ar r $@ $^
 
 # TODO: complete the following rules
-
-$(FLOAT_O):
-
-$(FLOAT_VFPRINTF_O):
+FLOAT_CFLAGS := -m32 -fno-builtin -I$(LIB_COMMON_DIR) -O2 -march=i386
+ 
+$(FLOAT_O): lib-common/FLOAT/FLOAT.c
+	mkdir -p $(@D)
+	gcc $(FLOAT_CFLAGS) -c -o $@ $<
+ 
+$(FLOAT_VFPRINTF_O): lib-common/FLOAT/FLOAT_vfprintf.c
+	mkdir -p $(@D)
+	gcc $(FLOAT_CFLAGS) -fno-stack-protector -D_FORTIFY_SOURCE=0 -c -o $@ $<
 

@@ -41,6 +41,7 @@ static int cmd_scan(char *args);
 static int cmd_eval(char *args);
 static int cmd_w(char *args);
 static int cmd_d(char *args);
+static int cmd_bt(char *args);
 
 static struct {
     char *name;
@@ -56,6 +57,7 @@ static struct {
     { "p", "Evaluate expression", cmd_eval },
     { "w", "Set watchpoint", cmd_w },
     { "d", "Delete watchpoint", cmd_d },
+    { "bt", "Print the StackFrame Chain", cmd_bt}
 };
 
 #define NR_CMD (sizeof(cmd_table) / sizeof(cmd_table[0]))
@@ -186,3 +188,31 @@ void ui_mainloop(void) {
         }
     }
 }
+
+static int cmd_bt(char *args){
+    const char *search_func_name(uint32_t eip);
+    struct{
+        swaddr_t prev_ebp;
+        swaddr_t ret_addr;
+        uint32_t args[4];
+    }PartOfStackFrame;
+    uint32_t ebp = cpu.ebp;
+    uint32_t eip = cpu.eip;
+    int i = 0;
+    while(ebp != 0){
+        PartOfStackFrame.args[0] = swaddr_read(ebp + 8,4);
+        PartOfStackFrame.args[1] = swaddr_read(ebp + 12,4);
+        PartOfStackFrame.args[2] = swaddr_read(ebp + 16,4);
+        PartOfStackFrame.args[3] = swaddr_read(ebp + 20,4);
+
+     printf("#%d 0x%08x in %s (0x%08x 0x%08x 0x%08x 0x%08x)\n",
+         i, eip, search_func_name(eip),
+         PartOfStackFrame.args[0], PartOfStackFrame.args[1],
+         PartOfStackFrame.args[2], PartOfStackFrame.args[3]);
+        i++;
+        eip = swaddr_read(ebp + 4,4); 
+        ebp = swaddr_read(ebp,4); 
+    }
+    return 0;
+}
+
